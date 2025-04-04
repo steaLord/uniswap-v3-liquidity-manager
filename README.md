@@ -1,66 +1,26 @@
-## Foundry
+## Uniswap V3 Liquidity Manager
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
-
-Foundry consists of:
-
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
-
-## Documentation
-
-https://book.getfoundry.sh/
+**Solidity smart contract for interacting with UniswapV3 liquidity pools.**
 
 ## Usage
 
-### Build
+### Install Foundry (If not installed)
 
 ```shell
-$ forge build
+$ curl -L https://foundry.paradigm.xyz | bash
+$ foundryup
+```
+
+### Install
+
+```shell
+$ git clone git@github.com:steaLord/uniswap-v3-liquidity-manager.git
+$ cd uniswap-v3-liquidity-manager
+$ forge install
 ```
 
 ### Test
 
 ```shell
 $ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
 ```
