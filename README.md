@@ -7,20 +7,20 @@
 ### Install Foundry (If not installed)
 
 ```shell
-$ curl -L https://foundry.paradigm.xyz | bash
-$ foundryup
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
 ```
 
 ### Install
 
 ```shell
-$ git clone git@github.com:steaLord/uniswap-v3-liquidity-manager.git
-$ cd uniswap-v3-liquidity-manager
-$ forge install
+git clone git@github.com:steaLord/uniswap-v3-liquidity-manager.git
+cd uniswap-v3-liquidity-manager
+forge install
 ```
 
 ### Test
 
 ```shell
-$ forge test
+forge test
 ```
