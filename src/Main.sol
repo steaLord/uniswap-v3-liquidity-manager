@@ -32,12 +32,7 @@ contract Main is ReentrancyGuard {
         int24 upperTick
     );
 
-    event LiquidityWithdrawn(
-        address indexed user,
-        uint256 indexed tokenId,
-        uint256 amount0,
-        uint256 amount1
-    );
+    event LiquidityWithdrawn(address indexed user, uint256 indexed tokenId, uint256 amount0, uint256 amount1);
 
     event LiquidityIncreased(
         address indexed user,
@@ -47,30 +42,13 @@ contract Main is ReentrancyGuard {
         uint256 liquidityAdded
     );
 
-    event FeesCollected(
-        address indexed user,
-        uint256 indexed tokenId,
-        uint256 amount0,
-        uint256 amount1
-    );
+    event FeesCollected(address indexed user, uint256 indexed tokenId, uint256 amount0, uint256 amount1);
 
-    event TokensReturned(
-        address indexed token,
-        address indexed recipient,
-        uint256 amount
-    );
+    event TokensReturned(address indexed token, address indexed recipient, uint256 amount);
 
-    event TokenReturnFailed(
-        address indexed token,
-        address indexed recipient,
-        uint256 amount
-    );
-    error TransferFailed(
-        address token,
-        address from,
-        address to,
-        uint256 amount
-    );
+    event TokenReturnFailed(address indexed token, address indexed recipient, uint256 amount);
+
+    error TransferFailed(address token, address from, address to, uint256 amount);
     error InvalidTickRange();
     error AmountTooSmall(uint256 amount);
     error WidthTooSmall(uint24 width);
@@ -80,6 +58,7 @@ contract Main is ReentrancyGuard {
     error NotTheOwner(address caller, address owner);
     error SlippageTooHigh(uint8 slippage);
     error SlippageTooLow(uint8 slippage);
+
     INonfungiblePositionManager public immutable positionManager;
 
     constructor(address _positionManager) {
@@ -108,17 +87,15 @@ contract Main is ReentrancyGuard {
         uint256 amount1Desired,
         uint24 width,
         uint8 slippage
-    )
-        external
-        nonReentrant
-        returns (uint256 tokenId, uint256 amount0Used, uint256 amount1Used)
-    {
+    ) external nonReentrant returns (uint256 tokenId, uint256 amount0Used, uint256 amount1Used) {
         if (slippage > MAX_SLIPPAGE) revert SlippageTooHigh(slippage);
         if (slippage < MIN_SLIPPAGE) revert SlippageTooLow(slippage);
-        if (amount0Desired < MIN_DESIRED_AMOUNT)
+        if (amount0Desired < MIN_DESIRED_AMOUNT) {
             revert AmountTooSmall(amount0Desired);
-        if (amount1Desired < MIN_DESIRED_AMOUNT)
+        }
+        if (amount1Desired < MIN_DESIRED_AMOUNT) {
             revert AmountTooSmall(amount1Desired);
+        }
         if (width < MIN_WIDTH) revert WidthTooSmall(width);
         if (width > MAX_WIDTH) revert WidthTooLarge(width);
 
@@ -128,26 +105,12 @@ contract Main is ReentrancyGuard {
         uint24 fee = uniswapPool.fee();
         int24 tickSpacing = uniswapPool.tickSpacing();
 
-        (, int24 currentTick, , , , , ) = uniswapPool.slot0();
+        (, int24 currentTick,,,,,) = uniswapPool.slot0();
 
-        (int24 lowerTick, int24 upperTick) = calculateTickRange(
-            currentTick,
-            tickSpacing,
-            width
-        );
+        (int24 lowerTick, int24 upperTick) = calculateTickRange(currentTick, tickSpacing, width);
 
-        TransferHelper.safeTransferFrom(
-            token0,
-            msg.sender,
-            address(this),
-            amount0Desired
-        );
-        TransferHelper.safeTransferFrom(
-            token1,
-            msg.sender,
-            address(this),
-            amount1Desired
-        );
+        TransferHelper.safeTransferFrom(token0, msg.sender, address(this), amount0Desired);
+        TransferHelper.safeTransferFrom(token1, msg.sender, address(this), amount1Desired);
 
         _safeApprove(token0, address(positionManager), amount0Desired);
         _safeApprove(token1, address(positionManager), amount1Desired);
@@ -155,7 +118,7 @@ contract Main is ReentrancyGuard {
         uint256 amount0Min = (amount0Desired * slippage) / PERCENTAGE_BASE;
         uint256 amount1Min = (amount1Desired * slippage) / PERCENTAGE_BASE;
 
-        (tokenId, , amount0Used, amount1Used) = positionManager.mint(
+        (tokenId,, amount0Used, amount1Used) = positionManager.mint(
             INonfungiblePositionManager.MintParams({
                 token0: token0,
                 token1: token1,
@@ -174,29 +137,21 @@ contract Main is ReentrancyGuard {
         _returnUnusedTokens(token0, msg.sender);
         _returnUnusedTokens(token1, msg.sender);
 
-        emit LiquidityProvided(
-            msg.sender,
-            pool,
-            tokenId,
-            amount0Used,
-            amount1Used,
-            lowerTick,
-            upperTick
-        );
+        emit LiquidityProvided(msg.sender, pool, tokenId, amount0Used, amount1Used, lowerTick, upperTick);
     }
 
     /**
      * @notice Снимает всю ликвидность из позиции
      * @param tokenId ID NFT-токена позиции
      */
-    function withdrawLiquidity(
-        uint256 tokenId
-    ) external nonReentrant returns (uint256 collected0, uint256 collected1) {
+    function withdrawLiquidity(uint256 tokenId)
+        external
+        nonReentrant
+        returns (uint256 collected0, uint256 collected1)
+    {
         _checkOwnership(tokenId);
 
-        (, , , , , , , uint128 liquidity, , , , ) = positionManager.positions(
-            tokenId
-        );
+        (,,,,,,, uint128 liquidity,,,,) = positionManager.positions(tokenId);
 
         positionManager.decreaseLiquidity(
             INonfungiblePositionManager.DecreaseLiquidityParams({
@@ -246,74 +201,47 @@ contract Main is ReentrancyGuard {
      * @param amount1Desired Желаемое количество токена 1
      * @param slippage Допустимый процент проскальзывания
      */
-    function increaseLiquidity(
-        uint256 tokenId,
-        uint256 amount0Desired,
-        uint256 amount1Desired,
-        uint8 slippage
-    )
+    function increaseLiquidity(uint256 tokenId, uint256 amount0Desired, uint256 amount1Desired, uint8 slippage)
         external
         nonReentrant
-        returns (
-            uint256 addedLiquidity,
-            uint256 amount0Used,
-            uint256 amount1Used
-        )
+        returns (uint256 addedLiquidity, uint256 amount0Used, uint256 amount1Used)
     {
-        if (amount0Desired < MIN_DESIRED_AMOUNT)
+        if (amount0Desired < MIN_DESIRED_AMOUNT) {
             revert AmountTooSmall(amount0Desired);
-        if (amount1Desired < MIN_DESIRED_AMOUNT)
+        }
+        if (amount1Desired < MIN_DESIRED_AMOUNT) {
             revert AmountTooSmall(amount1Desired);
+        }
         if (slippage > MAX_SLIPPAGE) revert SlippageTooHigh(slippage);
         if (slippage < MIN_SLIPPAGE) revert SlippageTooLow(slippage);
 
         _checkOwnership(tokenId);
 
-        (, , address token0, address token1, , , , , , , , ) = positionManager
-            .positions(tokenId);
+        (,, address token0, address token1,,,,,,,,) = positionManager.positions(tokenId);
 
-        TransferHelper.safeTransferFrom(
-            token0,
-            msg.sender,
-            address(this),
-            amount0Desired
-        );
-        TransferHelper.safeTransferFrom(
-            token1,
-            msg.sender,
-            address(this),
-            amount1Desired
-        );
+        TransferHelper.safeTransferFrom(token0, msg.sender, address(this), amount0Desired);
+        TransferHelper.safeTransferFrom(token1, msg.sender, address(this), amount1Desired);
 
         _safeApprove(token0, address(positionManager), amount0Desired);
         _safeApprove(token1, address(positionManager), amount1Desired);
 
-        uint256 amount0Min = (amount0Desired * (PERCENTAGE_BASE - slippage)) /
-            PERCENTAGE_BASE;
-        uint256 amount1Min = (amount1Desired * (PERCENTAGE_BASE - slippage)) /
-            PERCENTAGE_BASE;
-        (addedLiquidity, amount0Used, amount1Used) = positionManager
-            .increaseLiquidity(
-                INonfungiblePositionManager.IncreaseLiquidityParams({
-                    tokenId: tokenId,
-                    amount0Desired: amount0Desired,
-                    amount1Desired: amount1Desired,
-                    amount0Min: amount0Min,
-                    amount1Min: amount1Min,
-                    deadline: block.timestamp + DEADLINE_MINUTES
-                })
-            );
+        uint256 amount0Min = (amount0Desired * (PERCENTAGE_BASE - slippage)) / PERCENTAGE_BASE;
+        uint256 amount1Min = (amount1Desired * (PERCENTAGE_BASE - slippage)) / PERCENTAGE_BASE;
+        (addedLiquidity, amount0Used, amount1Used) = positionManager.increaseLiquidity(
+            INonfungiblePositionManager.IncreaseLiquidityParams({
+                tokenId: tokenId,
+                amount0Desired: amount0Desired,
+                amount1Desired: amount1Desired,
+                amount0Min: amount0Min,
+                amount1Min: amount1Min,
+                deadline: block.timestamp + DEADLINE_MINUTES
+            })
+        );
 
         _returnUnusedTokens(token0, msg.sender);
         _returnUnusedTokens(token1, msg.sender);
 
-        emit LiquidityIncreased(
-            msg.sender,
-            tokenId,
-            amount0Used,
-            amount1Used,
-            addedLiquidity
-        );
+        emit LiquidityIncreased(msg.sender, tokenId, amount0Used, amount1Used, addedLiquidity);
     }
 
     /**
@@ -329,13 +257,8 @@ contract Main is ReentrancyGuard {
         uint160 sqrtRatioAX96 = TickMath.getSqrtRatioAtTick(lowerTick);
         uint160 sqrtRatioBX96 = TickMath.getSqrtRatioAtTick(upperTick);
 
-        liquidity = LiquidityAmounts.getLiquidityForAmounts(
-            sqrtPriceX96,
-            sqrtRatioAX96,
-            sqrtRatioBX96,
-            amount0,
-            amount1
-        );
+        liquidity =
+            LiquidityAmounts.getLiquidityForAmounts(sqrtPriceX96, sqrtRatioAX96, sqrtRatioBX96, amount0, amount1);
     }
 
     /**
@@ -344,31 +267,23 @@ contract Main is ReentrancyGuard {
      * @param tickSpacing Интервал между тиками в пуле
      * @param width Ширина диапазона в процентах (умноженная на 100)
      */
-    function calculateTickRange(
-        int24 currentTick,
-        int24 tickSpacing,
-        uint24 width
-    ) internal pure returns (int24 lowerTick, int24 upperTick) {
+    function calculateTickRange(int24 currentTick, int24 tickSpacing, uint24 width)
+        internal
+        pure
+        returns (int24 lowerTick, int24 upperTick)
+    {
         uint256 currentPrice = tickToPrice(currentTick);
 
-        uint256 priceDelta = FullMath.mulDiv(
-            currentPrice,
-            width,
-            PRICE_PRECISION
-        );
+        uint256 priceDelta = FullMath.mulDiv(currentPrice, width, PRICE_PRECISION);
 
-        uint256 lowerPrice = currentPrice > priceDelta
-            ? currentPrice - priceDelta
-            : 1;
+        uint256 lowerPrice = currentPrice > priceDelta ? currentPrice - priceDelta : 1;
         uint256 upperPrice = currentPrice + priceDelta;
 
         int24 rawLowerTick = priceToTick(lowerPrice);
         int24 rawUpperTick = priceToTick(upperPrice);
 
         lowerTick = (rawLowerTick / tickSpacing) * tickSpacing;
-        upperTick =
-            ((rawUpperTick + tickSpacing - 1) / tickSpacing) *
-            tickSpacing;
+        upperTick = ((rawUpperTick + tickSpacing - 1) / tickSpacing) * tickSpacing;
 
         if (lowerTick >= currentTick) {
             lowerTick -= tickSpacing;
@@ -428,15 +343,8 @@ contract Main is ReentrancyGuard {
      * @notice Преобразует sqrtPriceX96 в обычную цену
      * @param sqrtPriceX96 Квадратный корень из цены в формате Q96
      */
-    function priceFromSqrtPriceX96(
-        uint160 sqrtPriceX96
-    ) internal pure returns (uint256) {
-        return
-            FullMath.mulDiv(
-                uint256(sqrtPriceX96) * uint256(sqrtPriceX96),
-                1,
-                1 << 192
-            );
+    function priceFromSqrtPriceX96(uint160 sqrtPriceX96) internal pure returns (uint256) {
+        return FullMath.mulDiv(uint256(sqrtPriceX96) * uint256(sqrtPriceX96), 1, 1 << 192);
     }
 
     /**
@@ -456,11 +364,7 @@ contract Main is ReentrancyGuard {
      * @param spender Получатель разрешения
      * @param amount Количество токенов
      */
-    function _safeApprove(
-        address token,
-        address spender,
-        uint256 amount
-    ) internal {
+    function _safeApprove(address token, address spender, uint256 amount) internal {
         IERC20(token).approve(spender, 0);
 
         bool success = IERC20(token).approve(spender, amount);
